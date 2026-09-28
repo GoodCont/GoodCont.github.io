@@ -1,0 +1,59 @@
+<!-- PANTALLA 2: GALERÍA -->
+<div id="pantalla-lista" class="hidden fixed inset-0 w-full h-full pt-28 flex flex-col overflow-y-auto" style="background-color: var(--bg-main); -webkit-overflow-scrolling: touch;">
+  <div class="fixed top-0 left-0 w-full z-40 shadow-md glass-header">
+    <div class="h-14 flex items-center justify-between px-3">
+      <div class="flex items-center gap-3">
+        <button class="icon-btn text-2xl text-white" onclick="toggleMenu()">☰</button>
+        <div class="text-white font-bold dyn-base tracking-widest uppercase">Documentos</div>
+      </div>
+      <div class="flex items-center">
+        <button class="icon-btn text-2xl text-white" onclick="actualizarRucYHistorial()" title="Actualizar">↻</button>
+      </div>
+    </div>
+    <div class="px-3 pb-2.5 max-w-2xl mx-auto w-full">
+      <select id="select-ruc-lista" class="classic-input font-mono dyn-sm font-semibold py-2" onchange="sincronizarSelects(this.value); actualizarRucYHistorial()"></select>
+    </div>
+  </div>
+
+  <div id="contenedor-historial" class="w-full max-w-3xl mx-auto px-4 flex flex-col gap-4">
+    <div class="text-center mt-12 dyn-sm font-semibold tracking-wide uppercase" style="color: var(--text-muted);">Cargando datos…</div>
+  </div>
+
+  <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
+    <button class="w-[120px] h-14 btn-primary rounded-[22px] flex justify-center items-center text-3xl hover:scale-105 shadow-2xl pointer-events-auto" onclick="abrirFormulario()">＋</button>
+  </div>
+
+  <div class="w-full mt-auto pb-4 pt-24 flex justify-center items-center pointer-events-none shrink-0">
+    <div class="opacity-40 font-semibold tracking-widest uppercase" style="color: var(--text-muted); font-size: 10px;">
+      &copy; 2026 GOODCONT • DIEGO CALDERÓN
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA 3: FORMULARIO -->
+<div id="pantalla-formulario" class="hidden fixed inset-0 w-full h-full pt-20 flex flex-col overflow-y-auto" style="background-color: var(--bg-main); -webkit-overflow-scrolling: touch;">
+  <div class="h-16 flex items-center justify-between px-4 shadow-md fixed top-0 w-full z-50 glass-header">
+    <div id="titulo-formulario" class="text-white font-black tracking-widest dyn-base uppercase drop-shadow-sm flex items-center gap-2">📄 Nuevo</div>
+    <div class="flex items-center gap-2">
+      <button type="button" class="dyn-xs font-semibold tracking-widest uppercase transition-colors text-white bg-white/10 hover:bg-white/20 px-3 py-2.5 rounded-lg border border-white/20" onclick="cerrarFormulario()">Cancelar</button>
+      <button type="button" id="btn-enviar" class="btn-primary dyn-xs font-bold tracking-wide uppercase px-5 py-2.5 rounded-lg shadow-md" onclick="enviarFormulario()">Guardar</button>
+    </div>
+  </div>
+
+  <form id="form-archivos" class="w-full max-w-3xl mx-auto px-4 flex flex-col gap-6">
+    <input type="hidden" id="id-edicion" name="idEdicion" value="">
+    <div class="hidden flex-col gap-2 p-4 rounded-2xl mt-4 shadow-sm" style="background-color: var(--bg-panel);">
+      <label class="dyn-xs font-bold tracking-wide uppercase" style="color: var(--text-muted);">Empresa vinculada <span class="required-dot">●</span></label>
+      <select id="select-ruc-form" name="ruc" class="classic-input font-mono dyn-sm font-semibold" onchange="sincronizarSelects(this.value)"></select>
+    </div>
+
+    <!-- CONTENEDOR DE CAMPOS (Inyectados por app.js) -->
+    <div id="contenedor-campos-archivos" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+  </form>
+
+  <div class="w-full mt-auto pt-16 pb-4 flex justify-center items-center pointer-events-none shrink-0">
+    <div class="opacity-40 font-semibold tracking-widest uppercase" style="color: var(--text-muted); font-size: 10px;">
+      &copy; 2026 GOODCONT • DIEGO CALDERÓN
+    </div>
+  </div>
+</div>

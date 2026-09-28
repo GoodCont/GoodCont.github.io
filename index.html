@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Enlace al archivo CSS externo -->
+  <link rel="stylesheet" href="./styles.css">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: '#2784f5' } } } }
+  </script>
+</head>
+<body class="antialiased selection:bg-blue-500 selection:text-white">
+
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <div class="dyn-sm font-mono font-medium" style="color:#EAF0FF; letter-spacing: 0.5px;">Procesando…</div>
+  </div>
+
+  <!-- TOAST NOTIFICACIÓN (Segundo Plano) -->
+  <div id="toast-notificacion" class="hidden fixed top-3 left-1/2 transform -translate-x-1/2 z-[5000] bg-gray-900 text-white px-5 py-2 rounded-full shadow-lg flex items-center gap-3">
+    <div id="toast-spinner" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+    <span id="toast-mensaje" class="dyn-sm font-semibold tracking-wide">Subiendo documentos...</span>
+  </div>
+
+  <!-- VISOR MODAL -->
+  <div id="modal-visor" class="hidden fixed inset-0 bg-black/90 z-[1000] flex flex-col backdrop-blur-md">
+    <div class="h-14 flex items-center justify-between px-4 text-white border-b border-gray-800" style="background:#050505;">
+      <span id="modal-titulo" class="font-semibold dyn-sm tracking-wide"></span>
+      <button class="icon-btn text-2xl hover:text-red-400" onclick="cerrarVisor()">✕</button>
+    </div>
+    <div class="flex-1 flex justify-center items-center p-2">
+      <div id="modal-contenido" class="w-full h-full bg-white rounded-xl flex justify-center items-center overflow-hidden shadow-2xl"></div>
+    </div>
+  </div>
+
+<!-- PANEL LATERAL (SIDEBAR) -->
+  <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black/60 z-[2000] transition-opacity backdrop-blur-sm" onclick="toggleMenu()"></div>
+  <div id="sidebar" class="fixed top-0 left-0 h-full w-[260px] shadow-2xl z-[2001] transform -translate-x-full transition-transform duration-300 flex flex-col border-r"
+       style="background-color: var(--bg-panel); border-color: var(--border);">
+    <div class="flex-1 overflow-y-auto">
+      <div class="h-16 flex items-center justify-center border-b" style="border-color: var(--border);">
+         <img alt="Logo" class="logo-app h-8 w-auto object-contain mr-2">
+         <span class="font-extrabold text-xl tracking-tight" style="color: var(--brand);">GoodCont</span>
+      </div>
+      <div class="p-4 flex flex-col gap-2">
+         <button onclick="cargarModulo('archivador'); toggleMenu();" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-colors" 
+                 style="background-color: var(--brand-soft); color: var(--brand);">
+           <span class="text-xl">📁</span> Archivador
+         </button>
+      </div>
+    </div>
+    <!-- Controles inferiores anclados y visibles siempre -->
+    <div class="p-4 pb-8 border-t flex flex-col gap-2 shrink-0" style="border-color: var(--border); background-color: var(--bg-panel);">
+      <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors" 
+              style="color: var(--text-main);" onclick="toggleTema()">
+        <span id="btn-theme" class="text-xl">🌙</span> <span id="theme-text">Modo Claro</span>
+      </button>
+      <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors" 
+              style="color: #F70808;" onclick="toggleMenu(); cerrarSesion();">
+        <span class="text-xl font-bold">⏏</span> Cerrar sesión
+      </button>
+    </div>
+  </div>
+
+  <!-- PANTALLA 1: LOGIN -->
+  <div id="pantalla-login" class="relative flex min-h-screen flex-col justify-center items-center p-4 pb-32 overflow-hidden">
+    <div class="ledger-bg absolute inset-0 pointer-events-none"></div>
+    <div class="relative rounded-3xl p-8 w-full max-w-[340px] flex flex-col gap-8 shadow-2xl z-10"
+         style="background-color: var(--bg-panel);">
+      <div class="flex flex-col items-center text-center">
+        <!-- AQUÍ PEGAS TU BASE64 DESPUÉS DE LA COMA -->
+        <img alt="Logo GoodCont" class="logo-app h-[180px] w-auto object-contain mb-3 drop-shadow-sm">
+        <div class="text-[11px] mt-1 font-bold tracking-widest uppercase" style="color: var(--text-muted);">Tu contabilidad al día, sin dolores de cabeza</div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[12px] font-bold uppercase tracking-widest" style="color: var(--text-muted);">Usuario</label>
+        <input type="email" id="email" class="classic-input font-medium" placeholder="Good Cont" required onkeypress="if(event.key === 'Enter') validarCorreo()">
+      </div>
+
+      <div>
+        <button id="btn-login" class="w-full py-4 btn-primary rounded-[12px] font-bold text-sm tracking-widest uppercase mt-2 shadow-lg" onclick="validarCorreo()">INGRESAR</button>
+        <div id="error-login" class="hidden text-[12px] font-semibold text-center mt-3" style="color: var(--danger);">Usuario no registrado en el sistema.</div>
+      </div>
+    </div>
+    
+    <!-- Pie de página Login-->
+    <div class="absolute bottom-4 left-0 w-full flex justify-center items-center pointer-events-none">
+      <div class="opacity-40 font-semibold tracking-widest uppercase" style="color: var(--text-muted); font-size: 10px;">
+        &copy; 2026 GOODCONT • DIEGO CALDERÓN
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR DINÁMICO DE MÓDULOS (SPA) -->
+  <div id="app-content" class="hidden w-full h-full absolute inset-0 z-10" style="background-color: var(--bg-main);">
+    <!-- Aquí app.js inyectará el contenido de archivador.html, tareos.html, etc. -->
+  </div>
+
+  <!-- Enlace al archivo JS externo -->
+  <script src="./app.js" defer></script>
+</body>
+</html>
