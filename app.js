@@ -1,7 +1,7 @@
 // PEGA AQUÍ EL ENLACE QUE TERMINA EN /exec QUE TE DIO APPS SCRIPT
 const API_URL = 'https://script.google.com/macros/s/AKfycbzTxwsrTFfqObBjDvUdn7I73lNO_p--5ST8_Ri6qku9fW6ETG18Mx0h9SZ-a4UFSti8xA/exec'; 
 
-// PEGA TU CÓDIGO BASE64 AQUÍ DENTRO DE LAS COMILLAS (Vacío temporalmente por instrucción)
+// PEGA TU CÓDIGO BASE64 AQUÍ DENTRO DE LAS COMILLAS
 const LOGO_BASE64 = ''; 
 
 function cargarLogos() {
@@ -292,6 +292,7 @@ function sincronizarSelects(valor) {
 async function enviarFormulario() {
   const form = document.getElementById('form-archivos');
   
+  // EVITAR BLOQUEO DE EDICIÓN: Quitar 'required' temporalmente si ya hay un archivo guardado
   let inputsRestaurar = [];
   document.querySelectorAll('.image-box').forEach(box => {
     if (box.dataset.url && box.dataset.url !== "") {
@@ -305,6 +306,7 @@ async function enviarFormulario() {
 
   const esValido = form.checkValidity();
   
+  // Restaurar el 'required' de inmediato
   inputsRestaurar.forEach(input => input.setAttribute('required', 'required'));
 
   if(!esValido) { 
@@ -316,47 +318,102 @@ async function enviarFormulario() {
   document.getElementById('btn-enviar').disabled = true;
   cerrarFormulario();
 
-  const leerBase64 = (file) => new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve({
-      nombre: file.name,
-      mimeType: file.type,
-      base64: reader.result.split(',')[1]
+  try {
+    // FUNCIÓN DE LECTURA Y COMPRESIÓN DE IMÁGENES
+    const leerBase64 = (file) => new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        // Si no es imagen (PDF, Excel), leer directo
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          nombre: file.name,
+          mimeType: file.type,
+          base64: reader.result.split(',')[1]
+        });
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      // Si es imagen, comprimir a JPG reduciendo resolución y calidad
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200; // Ancho máximo optimizado
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          // Calcular proporciones si la imagen es gigante
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Exportar a JPEG con 70% de calidad (Reduce drásticamente el peso)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          
+          resolve({
+            nombre: file.name.replace(/\.[^/.]+$/, "") + ".jpg", // Forzar extensión JPG
+            mimeType: 'image/jpeg',
+            base64: dataUrl.split(',')[1]
+          });
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
     });
-    reader.readAsDataURL(file);
-  });
 
-  let payloadForm = { 
-    ruc: document.getElementById('select-ruc-form').value,
-    idEdicion: document.getElementById('id-edicion').value,
-    usuarioEmail: document.getElementById('email').value
-  };
-  const inputsFiles = form.querySelectorAll('input[type="file"]');
-  
-  for (let input of inputsFiles) {
-    if (input.files.length > 0) {
-      payloadForm[input.name] = await leerBase64(input.files[0]);
+    let payloadForm = { 
+      ruc: document.getElementById('select-ruc-form').value,
+      idEdicion: document.getElementById('id-edicion').value,
+      usuarioEmail: document.getElementById('email').value 
+    };
+    const inputsFiles = form.querySelectorAll('input[type="file"]');
+    
+    // Convertir y comprimir archivos asíncronamente
+    for (let input of inputsFiles) {
+      if (input.files.length > 0) {
+        payloadForm[input.name] = await leerBase64(input.files[0]);
+      }
     }
-  }
 
-  ffetch(API_URL, {
-    method: 'POST',
-    redirect: 'follow',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ accion: 'procesarSubida', formulario: payloadForm })
-  })
-  .then(async res => {
-    const texto = await res.text();
-    try { 
-      return JSON.parse(texto); 
-    } catch (e) { 
-      console.error("Respuesta bloqueada por Google:", texto);
-      throw new Error("El servidor bloqueó la subida. Verifica que actualizaste a 'Nueva Versión' en Apps Script o que la imagen no sea demasiado pesada."); 
+    // Petición POST al backend
+    const respuesta = await fetch(API_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ accion: 'procesarSubida', formulario: payloadForm })
+    });
+
+    // Capturar respuesta en texto puro para evitar el crash del JSON parser
+    const texto = await respuesta.text();
+    let res;
+    try {
+      res = JSON.parse(texto);
+    } catch (e) {
+      console.error("Respuesta HTML de Google bloqueando la subida:", texto);
+      throw new Error("El servidor bloqueó la subida de los archivos. Asegúrate de haber publicado como 'Nueva Versión' en Apps Script.");
     }
-  })
-  .then(res => {
+
     document.getElementById('toast-notificacion').classList.replace('flex', 'hidden');
     document.getElementById('btn-enviar').disabled = false;
+
     if (res.exito) {
       form.reset();
       document.querySelectorAll('.image-box .icon-container').forEach(el => el.style.display = 'flex');
@@ -366,12 +423,13 @@ async function enviarFormulario() {
     } else {
       alert("Error al guardar: " + res.error);
     }
-  })
-  .catch(err => {
+
+  } catch (err) {
+    // Si la compresión o la subida fallan, atrapar el error sin congelar la pantalla
     document.getElementById('toast-notificacion').classList.replace('flex', 'hidden');
     document.getElementById('btn-enviar').disabled = false;
-    alert("Error de conexión: " + err.message);
-  });
+    alert("Problema al procesar: " + err.message);
+  }
 }
 
 function abrirEdicion(codigo) {
