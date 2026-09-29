@@ -339,13 +339,21 @@ async function enviarFormulario() {
     }
   }
 
-  fetch(API_URL, {
+  ffetch(API_URL, {
     method: 'POST',
     redirect: 'follow',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ accion: 'procesarSubida', formulario: payloadForm })
   })
-  .then(res => res.json())
+  .then(async res => {
+    const texto = await res.text();
+    try { 
+      return JSON.parse(texto); 
+    } catch (e) { 
+      console.error("Respuesta bloqueada por Google:", texto);
+      throw new Error("El servidor bloqueó la subida. Verifica que actualizaste a 'Nueva Versión' en Apps Script o que la imagen no sea demasiado pesada."); 
+    }
+  })
   .then(res => {
     document.getElementById('toast-notificacion').classList.replace('flex', 'hidden');
     document.getElementById('btn-enviar').disabled = false;
